@@ -5,6 +5,7 @@ from vispy import scene
 from vispy.scene import visuals
 from vispy.color import get_colormap
 
+
 # Ruta de la carpeta que contiene los archivos CSV
 folder_path = "/home/ninetydrake313/Documentos/Tesis/SM/"
 
