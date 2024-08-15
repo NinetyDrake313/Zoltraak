@@ -13,7 +13,6 @@ from scipy.constants import physical_constants
 start_time = time.time()
 
 electron = Particle.from_pdgid(11)
-
 # Definición de parámetros
 N = 10000  # Número total de simulaciones(Particulas)
 Nc = 100000  # Número máximo de colisiones por simulación
