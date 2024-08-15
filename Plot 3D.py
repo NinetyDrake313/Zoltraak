@@ -39,7 +39,7 @@ ax.tick_params(axis='both', which='major', labelsize=20)  # Ajusta el tamaño de
 # Título del gráfico
 ax.set_title('Trayectorias de Todas las Partículas',fontsize=50)
 
-plt.savefig('/home/ninetydrake313/Documentos/Tesis/trayectorias_particulas.png')
+plt.savefig('/home/ninetydrake313/Documentos/Tesis/trayectorias.png')
 
 # Mostrar el gráfico
 plt.show()
