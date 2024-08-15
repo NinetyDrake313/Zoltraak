@@ -8,7 +8,7 @@ import time
 start_time = time.time()
 
 # Definir el número de núcleos que deseas usar
-num_cores = 6
+num_cores = 20
 print(f"Usando {num_cores} núcleos para el procesamiento paralelo.")
 
 # Ruta de la base de datos
