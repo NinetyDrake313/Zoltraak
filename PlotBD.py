@@ -46,7 +46,6 @@ ax.set_title('Trayectorias de Todas las Partículas', fontsize=50)
 
 # Guardar el gráfico
 plt.savefig('/home/ninetydrake313/Documentos/Tesis/trayectorias_particulas.png')
-
 # Mostrar el gráfico
 plt.show()
 
