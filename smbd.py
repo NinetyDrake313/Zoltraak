@@ -57,7 +57,10 @@ conn = sqlite3.connect(ruta_bd)
 cursor = conn.cursor()
 
 # Limpiar la tabla 'particulas' antes de insertar nuevos datos
-cursor.execute('DELETE FROM particulas')
+cursor.execute('DELETE FROM particulas') #<---IMPORTANTE 
+#Al ejecutar por primera vez el programa se tiene que quitar esta linea ,cada que se corre genera una base de datos si no existe, en caso de existir la borra
+#pero conserva sus atributos ,al no haberse creado el programa da error ,despues de ejecutarse una vez esta linea debe de ejecutarse todas las veces despues
+#Si se sobre escribe sin borrar la BD anterior genera un conflicto y atribuye valores a particulas e interaciones que no son :) 
 
 # Crear la tabla si no existe
 cursor.execute('''
