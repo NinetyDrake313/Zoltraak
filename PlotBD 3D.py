@@ -2,7 +2,7 @@ import sqlite3
 import pandas as pd
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
-from concurrent.futures import ProcessPoolExecutor
+import multiprocessing
 import time
 
 start_time = time.time()
@@ -26,9 +26,9 @@ def plot_trajectory(particle_id):
     data = pd.read_sql_query(query, conn)
     return data['x'].values, data['y'].values, data['z'].values
 
-# Usar ProcessPoolExecutor para paralelizar el trabajo usando 4 núcleos
-with ProcessPoolExecutor(max_workers=num_cores) as executor:
-    results = list(executor.map(plot_trajectory, particle_ids['particle_id'].values))
+# Usar multiprocessing.Pool para paralelizar el trabajo usando 4 núcleos
+with multiprocessing.Pool(processes=num_cores) as pool:
+    results = pool.map(plot_trajectory, particle_ids['particle_id'].values)
 
 # Crear una figura para el gráfico 3D
 fig = plt.figure(figsize=(20, 20))  # Ajusta las dimensiones según necesites
