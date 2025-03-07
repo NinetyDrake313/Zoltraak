@@ -14,11 +14,9 @@ k = 1 / (4 * math.pi * epsilon0)  # Constante de Coulomb (N·m²/C²)
 na = 6.02214076e23  # Número de Avogadro (1/mol)
 conv = 1.602176634e-13  # Factor de conversión: 1 MeV = 1.602176634e-13 J
 
-
 # =======================
 # Funciones de utilería
 # =======================
-
 def calc_beta_gamma(E, E_rest):
     """
     Calcula β (v/c) y γ para una partícula.
@@ -28,20 +26,9 @@ def calc_beta_gamma(E, E_rest):
     beta = math.sqrt(1 - 1 / (gamma ** 2))
     return beta, gamma
 
-
 def calc_sigma(E, beta, params):
     """
     Calcula la sección macroscópica Σ (en 1/m) usada para obtener el camino libre medio.
-
-    Fórmula:
-      Σ = ((zo²*w2 + zh²*w1)/(w2+w1)) * n_med * 4π *
-          [ (z1 * qelectron² * k / (E * conv)) ]² / (3β²+1)
-
-    Donde:
-      - E se proporciona en MeV y se convierte a Joules usando conv.
-      - n_med es la densidad numérica del medio en 1/m³.
-
-    Retorna Σ en 1/m.
     """
     zo = params['zo']
     w2 = params['w2']
@@ -52,43 +39,25 @@ def calc_sigma(E, beta, params):
     k = params['k']
     z1 = params['z1']
 
-    # Incluir factor de conversión: E se convierte a Joules
     factor = (z1 * qelectron ** 2 * k / (E * conv)) ** 2  # unidades: (m)²
-    dim_factor = (zo ** 2 * w2 + zh ** 2 * w1) / (w2 + w1)  # adimensional
-
-    sigma = dim_factor * n_med * 4 * math.pi * factor / (3 * beta ** 2 + 1)  # Σ en 1/m
+    dim_factor = (zo ** 2 * w2 + zh ** 2 * w1) / (w2 + w1)
+    sigma = dim_factor * n_med * 4 * math.pi * factor / (3 * beta ** 2 + 1)
     return sigma
-
 
 def calc_collision_length(sigma, n_med, rand_val):
     """
     Calcula la longitud de colisión l en cm.
-
-    Se usa: λ (en m) = 1/Σ, donde Σ está en 1/m.
-    Luego se convierte a cm (1 m = 100 cm) y se obtiene:
-      l = -λ_cm * ln(rand_val)
     """
     lambda_m = 1 / sigma  # en metros
     lambda_cm = lambda_m * 100  # conversión a cm
     l = - lambda_cm * math.log(rand_val)
     return l  # l en cm
 
-
 def bethe_energy_loss(l, beta, gamma, params):
     """
     Calcula la pérdida de energía en un paso de longitud l (en cm) usando la fórmula de Bethe–Bloch.
-
-    Parámetros:
-      - l: longitud del paso en cm.
-      - beta, gamma: parámetros relativistas (adimensional).
-      - params: debe contener 'r' (densidad del medio en kg/m³), 'melectron' (en MeV),
-                'I1' y 'I2' (en MeV), y 'z1' (carga del ion).
-
-    La fórmula:
-      -dE/dx = (K*z1²/β²)*ρ (en g/cm³)*[ f_H*(ln(2 m_eβ²γ²/I1)-β²) + f_O*(ln(2 m_eβ²γ²/I2)-β²) ]
-    Retorna la pérdida de energía (en MeV) en el paso l.
     """
-    rho_g_cm3 = params['r'] / 1000.0  # 1000 kg/m³ → 1 g/cm³
+    rho_g_cm3 = params['r'] / 1000.0  # conversión: 1000 kg/m³ → 1 g/cm³
     K = 0.307075  # MeV·cm²/g
     f_H = 2 / 18.0
     f_O = 16 / 18.0
@@ -100,10 +69,8 @@ def bethe_energy_loss(l, beta, gamma, params):
     term_H = f_H * (math.log((2 * m_e * beta ** 2 * gamma ** 2) / I1) - beta ** 2)
     term_O = f_O * (math.log((2 * m_e * beta ** 2 * gamma ** 2) / I2) - beta ** 2)
     dEdx = K * (z1 ** 2) / (beta ** 2) * rho_g_cm3 * (term_H + term_O)  # MeV/cm
-    dE = - dEdx * l * 1.60218e-9  # Pérdida de energía en MeV\
-    #print(dE)
+    dE = - dEdx * l * 1.60218e-9  # Pérdida de energía en MeV
     return dE
-
 
 def update_position(x, y, z, l, theta, phi, scale=1):
     """
@@ -114,7 +81,6 @@ def update_position(x, y, z, l, theta, phi, scale=1):
     z_new = z + l * math.cos(theta) * scale * 1e-9
     return x_new, y_new, z_new
 
-
 # ==============================
 # Configuración e Inicialización para iones de carbono
 # ==============================
@@ -122,18 +88,19 @@ def update_position(x, y, z, l, theta, phi, scale=1):
 start_time = time.time()
 
 # Parámetros de la simulación
-N = 10000  # Número total de partículas (simulaciones)
+N = 1000000  # Número total de partículas (simulaciones)
 Nc = 100000  # Número máximo de colisiones por partícula
+bloque = 10000  # Tamaño del bloque para escritura en la BD
 
 # Parámetros del medio (agua)
 r = 1000.0  # Densidad del agua en kg/m³ (→ 1 g/cm³)
 nagua = 3.37e28  # Número de moléculas de agua por m³
 
 # Propiedades del agua (para la contribución en la fórmula de Bethe)
-w1 = 2.0  # Número de átomos de hidrógeno
-w2 = 1.0  # Número de átomos de oxígeno
-zh = 1.0  # (valor adimensional)
-zo = 8.0  # (valor adimensional)
+w1 = 2.0
+w2 = 1.0
+zh = 1.0
+zo = 8.0
 
 # Características del ion de carbono (¹²C)
 z1 = 6  # Carga: 6+
@@ -142,10 +109,9 @@ Ei = 1350 * 12  # Energía cinética: 1350 MeV/nucleón → 16200 MeV total
 E = Ei + Ereposo  # Energía total inicial (MeV)
 
 # Potenciales de ionización (valores aproximados en MeV)
-I1 = (12 * zh + 7) * 1e-6  # ~19e-6 MeV (19 eV) para hidrógeno
-I2 = (12 * zo + 7) * 1e-6  # ~103e-6 MeV (103 eV) para oxígeno
+I1 = (12 * zh + 7) * 1e-6  # ~19e-6 MeV
+I2 = (12 * zo + 7) * 1e-6  # ~103e-6 MeV
 
-# Agrupar parámetros en un diccionario
 params = {
     'zo': zo,
     'w2': w2,
@@ -164,10 +130,9 @@ params = {
 # =======================
 # Configurar la base de datos
 # =======================
-# Nueva ruta: se guarda la BD en un directorio "db" en el directorio actual
 ruta_carpeta = "/home/ninetydrake313/Documentos/Tesis/La vie est drôle/BUENA_DATA/"
 os.makedirs(ruta_carpeta, exist_ok=True)
-ruta_bd = os.path.join(ruta_carpeta, 'simulacion_particulasPR1.db')
+ruta_bd = os.path.join(ruta_carpeta, 'simulacion_particulasPR2.db')
 
 conn = sqlite3.connect(ruta_bd)
 cursor = conn.cursor()
@@ -199,17 +164,17 @@ for i in range(1, N + 1):
         collision_count += 1
 
         beta, gamma_val = calc_beta_gamma(Ef, Ereposo)
-        sigma = calc_sigma(Ef, beta, params)  # Σ en 1/m
+        sigma = calc_sigma(Ef, beta, params)
 
         rand_l = np.random.rand()
         rand_theta = np.random.rand()
         rand_phi = np.random.rand()
 
-        l = calc_collision_length(sigma, params['nagua'], rand_l)  # l en cm
+        l = calc_collision_length(sigma, params['nagua'], rand_l)
         theta = math.acos(1 - (2 * rand_theta * (1 - beta ** 2)) / (3 * beta ** 2 - 4 * rand_theta * beta ** 2 + 1))
         phi = 2 * math.pi * rand_phi
 
-        dE = bethe_energy_loss(l, beta, gamma_val, params)  # Pérdida de energía en MeV
+        dE = bethe_energy_loss(l, beta, gamma_val, params)
         Ef_new = Ef + dE  # dE es negativo
 
         if Ef_new > Ereposo:
@@ -219,12 +184,24 @@ for i in range(1, N + 1):
         else:
             break
 
-cursor.executemany('''
-    INSERT INTO particulas (particle_id, N_iteracion, x, y, z, Ef, Ec)
-    VALUES (?, ?, ?, ?, ?, ?, ?)
-''', results)
+    # Cada 'bloque' de partículas se escribe en la base de datos
+    if i % bloque == 0:
+        cursor.executemany('''
+            INSERT INTO particulas (particle_id, N_iteracion, x, y, z, Ef, Ec)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
+        ''', results)
+        conn.commit()
+        results = []  # Limpiar la lista para liberar memoria
+        print(f"Partículas simuladas: {i}")
 
-conn.commit()
+# Inserción de cualquier resultado pendiente
+if results:
+    cursor.executemany('''
+        INSERT INTO particulas (particle_id, N_iteracion, x, y, z, Ef, Ec)
+        VALUES (?, ?, ?, ?, ?, ?, ?)
+    ''', results)
+    conn.commit()
+
 conn.close()
 
 end_time = time.time() - start_time
