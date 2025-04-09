@@ -76,7 +76,26 @@ def energy_loss1(l, beta, gamma, params):
     term_H = f_H * (math.log((2 * m_e * beta ** 2 * gamma ** 2) / I1) - beta ** 2)
     term_O = f_O * (math.log((2 * m_e * beta ** 2 * gamma ** 2) / I2) - beta ** 2)
     dEdx = K * (z1 ** 2) / (beta ** 2) * rho_g_cm3 * (term_H + term_O)  # MeV/cm
-    dE = - dEdx * l * 1.60218e-9  # Pérdida de energía en MeV
+    dE = - 5 *dEdx * l * 1.60218e-9  # Pérdida de energía en MeV
+    return dE
+
+def energy_loss2(l, beta, gamma, params):
+    """
+    Calcula la pérdida de energía en un paso de longitud l (en cm) usando la fórmula de Bethe–Bloch.
+    """
+    rho_g_cm3 = params['r'] / 1000.0  # conversión: 1000 kg/m³ → 1 g/cm³
+    K = 0.307075  # MeV·cm²/g
+    f_H = 2 / 18.0
+    f_O = 16 / 18.0
+    m_e = params['melectron']  # 0.511 MeV
+    I1 = params['I1']
+    I2 = params['I2']
+    z1 = params['z1']
+
+    term_H = f_H * (math.log((2 * m_e * beta ** 2 * gamma ** 2) / I1) - beta ** 2)
+    term_O = f_O * (math.log((2 * m_e * beta ** 2 * gamma ** 2) / I2) - beta ** 2)
+    dEdx = K * (z1 ** 2) / (beta ** 2) * rho_g_cm3 * (term_H + term_O)  # MeV/cm
+    dE = - 2 * dEdx * l * 1.60218e-9  # Pérdida de energía en MeV
     return dE
 
 
@@ -117,7 +136,25 @@ def calc_sigma2(E, beta, params):
 
     factor = (z1 * qelectron ** 2 * k / (E * conv)) ** 2  # unidades: (m)²
     dim_factor = (zo ** 2 * w2 + zh ** 2 * w1) / (w2 + w1)
-    sigma = dim_factor * n_med * 4 * math.pi * factor / (3 * beta ** 2 + 1)
+    sigma = dim_factor * n_med * 4 * math.pi * factor * 2 / (3 * beta ** 2 + 1)
+    return sigma
+
+def calc_sigma3(E, beta, params):
+    """
+    Calcula la sección macroscópica Σ (en 1/m) usada para obtener el camino libre medio.
+    """
+    zo = params['zo']
+    w2 = params['w2']
+    zh = params['zh']
+    w1 = params['w1']
+    n_med = params['nagua']  # en 1/m³
+    qelectron = params['qelectron']
+    k = params['k']
+    z1 = params['z1']
+
+    factor = (z1 * qelectron ** 2 * k / (E * conv)) ** 2  # unidades: (m)²
+    dim_factor = (zo ** 2 * w2 + zh ** 2 * w1) / (w2 + w1)
+    sigma = dim_factor * n_med * 4 * math.pi * factor * 3 / (3 * beta ** 2 + 1)
     return sigma
 
 #====================================================
@@ -139,24 +176,30 @@ def calc_collision_length(sigma, n_med, rand_val):
 
 def distribucion(x,y,z,umbral):
     """
-    Regresa 0 si no entra a la region de sigma2 y 1 si lo hace.
+    Regresa 0 si no entra a la region y 1 si lo hace.
     """
     rangox = (1/math.sqrt(2))*(math.sin(x-0.25*3*math.pi)+math.cos(x-0.25*3*math.pi))
-    if abs(rangox) <= umbral : actx = 0
-    else: actx = 1
-
     rangoy = (1/math.sqrt(2))*(math.sin(y-0.25*3*math.pi)+math.cos(y-0.25*3*math.pi))
-    if abs(rangoy) <= umbral : acty = 0
-    else: acty = 1
-
     rangoz = (1/math.sqrt(2))*(math.sin(z-0.25*3*math.pi)+math.cos(z-0.25*3*math.pi))
-    if abs(rangoz) <= umbral : actz = 0
-    else: actz = 1
 
-    if actx+acty+actz >= 2: activacion = 1
+    region = rangox * rangoy * rangoz
+    if abs(region) >= umbral : activacion = 1
     else: activacion = 0
 
-    return activacion # l en cm
+    return activacion # valor binario de activación
+
+
+def distribucion_valor(x, y, z):
+    """
+    Devuelve el valor real del producto region para usarlo con umbrales arbitrarios.
+    """
+    rangox = (1 / math.sqrt(2)) * (math.sin(x - 0.25 * 3 * math.pi) + math.cos(x - 0.25 * 3 * math.pi))
+    rangoy = (1 / math.sqrt(2)) * (math.sin(y - 0.25 * 3 * math.pi) + math.cos(y - 0.25 * 3 * math.pi))
+    rangoz = (1 / math.sqrt(2)) * (math.sin(z - 0.25 * 3 * math.pi) + math.cos(z - 0.25 * 3 * math.pi))
+
+    region = rangox * rangoy * rangoz
+    return abs(region)
+
 
 
 # ==============================
@@ -243,8 +286,15 @@ for i in range(1, N + 1):
 
         beta, gamma_val = calc_beta_gamma(Ef, Ereposo)
 
-        if  distribucion(x, y, z,0.8) == 0 : sigma = calc_sigma1(Ef, beta, params)
-        else: sigma = calc_sigma2(Ef, beta, params)
+        valor_region = distribucion_valor(x, y, z)
+
+        if valor_region < 0.4:
+            sigma = calc_sigma1(Ef, beta, params)
+        elif 0.4 <= valor_region <= 0.6:
+            sigma = calc_sigma2(Ef, beta, params)
+        else:
+            sigma = calc_sigma3(Ef, beta, params)
+
 
 
         rand_l = np.random.rand()
@@ -255,7 +305,13 @@ for i in range(1, N + 1):
         theta = math.acos(1 - (2 * rand_theta * (1 - beta ** 2)) / (3 * beta ** 2 - 4 * rand_theta * beta ** 2 + 1))
         phi = 2 * math.pi * rand_phi
 
-        dE = bethe_energy_loss(l, beta, gamma_val, params)
+        if valor_region < 0.4:
+            dE = bethe_energy_loss(l, beta, gamma_val, params)
+        elif 0.4 <= valor_region <= 0.6:
+            dE = energy_loss1(l, beta, gamma_val, params)
+        else:
+            dE = energy_loss2(l, beta, gamma_val, params)
+
         Ef_new = Ef + dE  # dE es negativo
 
         if Ef_new > Ereposo:
