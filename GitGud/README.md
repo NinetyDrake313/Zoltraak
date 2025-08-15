@@ -47,4 +47,12 @@ Con estas rutas modificadas y el entorno configurado, se explicará cómo funcio
 
 
 
+## Ciclo de simulación 
+
+1.	Configurar los valores en `SM_MC_Auto.py` :
+
+-	`--n` es el numero total de particulas a simular.
+-	`--nc` es el numero maximo de colisiones por particula.
+-	`--block` es el tamaño de escritura por bloque en la base de datos.
+
 
