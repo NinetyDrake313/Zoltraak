@@ -51,8 +51,8 @@ Con estas rutas modificadas y el entorno configurado, se explicará cómo funcio
 
 1.	Configurar los valores en `SM_MC_Auto.py` :
 
--	`--n` es el numero total de particulas a simular.
--	`--nc` es el numero maximo de colisiones por particula.
--	`--block` es el tamaño de escritura por bloque en la base de datos.
+-	`n` es el numero total de particulas a simular.
+-	`nc` es el numero maximo de colisiones por particula.
+-	`block` es el tamaño de escritura por bloque en la base de datos.
 
-
+Estos valores pueden variar por diferentes cuestiones ,como ya se menciono el script de `Auto_P.py` paraleliza los procesos ,por lo que la configuracion de la simulacion se realizan en base a la disponibilidad del hardware ,en el caso del usado es un sistema que cuenta con 24 nucleos de procesamiento ,donde 16 son de alto rendimiento y 8 de eficiencia ,de igual forma cuenta con 32 GB de memoria RAM por lo que la cantidad de procesos en paralelo que se uso fue de 15 y para cada simulacion se uso `n = 100` ,`block = 50` y `nc = 60,000` 
