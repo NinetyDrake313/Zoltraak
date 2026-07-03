@@ -2,11 +2,14 @@ import glob
 import os
 import pandas as pd
 
+NA = 'SN'
+NE = 'RAD'
+
 # ==== Configuración ====
 # Ajusta fácilmente estos valores:
-FOLDER_PATH = 'csv/A_Val/a10/RAD/'        # Carpeta que contiene los CSV a procesar
+FOLDER_PATH = f'csv/A_Val/{NA}/{NE}/'        # Carpeta que contiene los CSV a procesar
 PATTERN = 'i_*.csv'                      # Patrón de archivos (ej. 'a_*.csv')
-OUTPUT_CSV = 'csv/A_Val/a10/RAD/averages.csv'              # Nombre del CSV de salida con los promedios
+OUTPUT_CSV = f'csv/A_Val/{NA}/{NE}/averages.csv'              # Nombre del CSV de salida con los promedios
 
 
 def aggregate_csv_averages(folder_path: str, pattern: str, output_csv: str) -> None:

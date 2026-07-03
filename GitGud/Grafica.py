@@ -3,10 +3,10 @@ import matplotlib.pyplot as plt
 
 # Listado de archivos y etiquetas
 files = ['SN.csv', 'a1.csv', 'a2.csv', 'a5.csv', 'a10.csv', 'a630.csv']
-labels = ['Sin Nano', 'a = 1', 'a = 2', 'a = 5', 'a = 10', 'a = 630']
+labels = ['Sin NPs', 'a = 1', 'a = 2', 'a = 5', 'a = 10', 'a = 630']
 
 colors = {
-    "Sin Nano"  : "#1f1f1f",
+    "Sin NPs"  : "#1f1f1f",
     "a = 1"        : "#DD00E6",  # Magenta brillante
     "a = 2"        : "#2C97EB",  # Azul claro
     "a = 5"        : "#E6006B",  # Rosa intenso
@@ -35,14 +35,18 @@ for df, label in zip(dfs, labels):
         continue
     plt.plot(df[x_col], df[y_col], marker='', linestyle='-', label=label, color=colors[label], linewidth=2 if label == "Sin Nano" else 1.5)
 
-
-plt.xlabel('Profundidad z (cm)')
-plt.ylabel(y_col)
-plt.title(f'Comparación de nanoparticulas en tejido para {y_col} para 10% de Au con "a" variante.')
+#plt.xlim(2.7, 5.8)
+#plt.ylim(5, 70)
+#plt.yscale("log", base=10)
+plt.xlabel('Depth z (cm)')
+plt.ylabel('Radius (cm)')
+#plt.ylabel(f'Energy per unit area (MeV/cm$^2$)')
+#plt.ylabel(r"dE/dx $\left(\mathrm{MeV}/\mathrm{mm}\right) $") #energía por área  energía promedio
+plt.title(f'Comparison of nanoparticles in tissue for average radius with 10% concentration.')
 plt.grid(True)
-plt.legend(title='Valor de a')
+plt.legend(title='Nanoparticles')
 plt.tight_layout()
-plt.savefig(f'/home/ninetydrake313/Documentos/Tesis/La vie est drôle/csv/A_Val/Comparativos/Comparacion_{y_col}.png')
+plt.savefig(f'/home/ninetydrake313/Documentos/Tesis/La vie est drôle/csv/NANO/Comparativos/eVal_Nano_Comparacion_{y_col}.png')
 plt.show()
 
 
@@ -98,4 +102,27 @@ for file in files:
         print(f"Archivo no encontrado: {path}")
         dfs.append(pd.DataFrame())
 
+
+
+# Listado de archivos y etiquetas
+files = ['SN.csv', 'a1.csv', 'a2.csv', 'a5.csv', 'a10.csv', 'a630.csv']
+labels = ['Sin NPs', 'a = 1', 'a = 2', 'a = 5', 'a = 10', 'a = 630']
+
+colors = {
+    "Sin NPs"  : "#1f1f1f",
+    "a = 1"        : "#DD00E6",  # Magenta brillante
+    "a = 2"        : "#2C97EB",  # Azul claro
+    "a = 5"        : "#E6006B",  # Rosa intenso
+    "a = 10"        : "#9200E6",  # Púrpura
+    "a = 630"       : "#FFD700",  # Gris medio (anteriormente casi negro)
+}
+# Cargar todos los CSV
+dfs = []
+for file in files:
+    path = f'/home/ninetydrake313/Documentos/Tesis/La vie est drôle/csv/A_Val/Comparativos/{file}'
+    try:
+        dfs.append(pd.read_csv(path))
+    except FileNotFoundError:
+        print(f"Archivo no encontrado: {path}")
+        dfs.append(pd.DataFrame())
 """

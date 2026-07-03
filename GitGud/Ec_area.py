@@ -2,11 +2,13 @@ import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 
+NA = 'SN'
+
 # ==== Configuración ====
 # Ajusta estas rutas según tu entorno:
-RADIUS_CSV = 'csv/A_Val/a10/RAD/averages.csv'                 # CSV con columnas: in_bin, radius
-ENERGY_CSV = 'csv/A_Val/a10/Ec/averages.csv'                 # CSV con columnas: in_bin, energy_avg
-OUTPUT_CSV = 'csv/A_Val/a10/normalized_by_area.csv'    # CSV de salida con energía normalizada por área
+RADIUS_CSV = f'csv/A_Val/{NA}/RAD/averages.csv'                 # CSV con columnas: in_bin, radius
+ENERGY_CSV = f'csv/A_Val/{NA}/Ec/averages.csv'                 # CSV con columnas: in_bin, energy_avg
+OUTPUT_CSV = f'csv/A_Val/{NA}/normalized_by_area.csv'    # CSV de salida con energía normalizada por área
 
 
 def normalize_from_two_csv(radius_csv: str, energy_csv: str, output_csv: str) -> pd.DataFrame:

@@ -15,15 +15,15 @@ parser.add_argument(
     help="Ruta de la base de datos SQLite de salida (p.ej. BUENA_DATA/PRUEBA_1.db)"
 )
 parser.add_argument(
-    '--n', type=int, default=100,
+    '--n', type=int, default=10,
     help="Número total de partículas (default: 10000)"
 )
 parser.add_argument(
-    '--nc', type=int, default=60000,
+    '--nc', type=int, default=600000,
     help="Máximo de colisiones por partícula (default: 100000)"
 )
 parser.add_argument(
-    '--block', type=int, default=50,
+    '--block', type=int, default=5,
     help="Tamaño de bloque para commits en la BD (default: 1000)"
 )
 args = parser.parse_args()
@@ -51,7 +51,6 @@ melectron = 0.511  # Masa del electrón (MeV/c²)
 epsilon0 = 8.8541878128e-12  # Permisividad del vacío (F/m)
 k = 1 / (4 * math.pi * epsilon0)  # Constante de Coulomb (N·m²/C²)
 na = 6.02214076e23  # Número de Avogadro (1/mol)
-conv = 1.602176634e-13  # Factor de conversión: 1 MeV = 1.602176634e-13 J
 
 re = 2.8179403227e-13          # Classical electron radius (cm)
 K = 4 * np.pi * na * re**2 * melectron
@@ -240,8 +239,8 @@ def wave_vector(beta,gamma):
     return k
 
 def sigma(compuesto,k): #cm^2
-    c1 = (2 * (m_reducida[compuesto])**2 * g2[compuesto]**2 ) / (hbar_c**4 * k**2 * mu[compuesto]**2 )
-    c2 = (k**2) / (k**2 + mu[compuesto]**2)
+    c1 = (4*math.pi * (m_reducida[compuesto])**2 * g2[compuesto]**2 ) / (hbar_c**4 * k**2 * mu[compuesto]**2 )
+    c2 = (k**2) / (4*k**2 + mu[compuesto]**2)
     sigma = c1 * c2
     return sigma
 
@@ -267,182 +266,6 @@ def average_free_path_mix(sigma,medio,nano):
     l = - lamb * np.log(np.random.rand())
     return l
 
-# =======================================================
-# -----------------Funciones de energía -----------------
-# =======================================================
-
-def calc_beta_gamma(E, E_rest):
-    """
-    Calcula β (v/c) y γ para una partícula.
-    E y E_rest deben estar en MeV.
-    """
-    gamma = E / E_rest
-    beta = math.sqrt(1 - 1 / (gamma ** 2))
-    return beta, gamma
-
-def bethe_energy_loss(l, beta, gamma, params):
-    """
-    Calcula la pérdida de energía en un paso de longitud l (en cm)
-    usando la fórmula de Bethe–Bloch. Se fuerza que los argumentos de los
-    logaritmos sean mayores a un umbral (1.1) para evitar valores negativos.
-    """
-    rho_g_cm3 = params['r'] / 1000.0  # conversión: 1000 kg/m³ → 1 g/cm³
-    K = 0.307075  # MeV·cm²/g
-    f_H = 2 / 18.0
-    f_O = 16 / 18.0
-    m_e = params['melectron']  # 0.511 MeV
-    I1 = params['I1']
-    I2 = params['I2']
-    z1 = params['z1']
-
-    # Calcular los argumentos de los logaritmos y forzarlos a un mínimo de 1.1
-    arg_H = (2 * m_e * beta**2 * gamma**2) / I1
-    arg_O = (2 * m_e * beta**2 * gamma**2) / I2
-    if arg_H < 1.1:
-        arg_H = 1.1
-    if arg_O < 1.1:
-        arg_O = 1.1
-
-    term_H = f_H * (math.log(arg_H) - beta ** 2)
-    term_O = f_O * (math.log(arg_O) - beta ** 2)
-    dEdx = K * (z1 ** 2) / (beta ** 2) * rho_g_cm3 * (term_H + term_O)  # MeV/cm
-
-    # dE en MeV; se elimina el factor de conversión ya que dEdx*l está en MeV.
-    dE = - dEdx * l * 1e-9
-
-    # Forzar a que la pérdida sea negativa si se llega a obtener un valor positivo.
-    if dE > 0:
-        dE = -abs(dE)
-    return dE
-
-def energy_loss1(l, beta, gamma, params):
-    """
-    Variante de la pérdida de energía. La implementación es idéntica a la de bethe_energy_loss,
-    lo que permite cambios futuros sin afectar la otra función.
-    """
-    rho_g_cm3 = params['r'] / 1000.0
-    K = 0.307075
-    f_H = 2 / 18.0
-    f_O = 16 / 18.0
-    m_e = params['melectron']
-    I1 = params['I1']
-    I2 = params['I2']
-    z1 = params['z1']
-
-    arg_H = (2 * m_e * beta**2 * gamma**2) / I1
-    arg_O = (2 * m_e * beta**2 * gamma**2) / I2
-    if arg_H < 1.1:
-        arg_H = 1.1
-    if arg_O < 1.1:
-        arg_O = 1.1
-
-    term_H = f_H * (math.log(arg_H) - beta ** 2)
-    term_O = f_O * (math.log(arg_O) - beta ** 2)
-    dEdx = K * (z1 ** 2) / (beta ** 2) * rho_g_cm3 * (term_H + term_O)
-    dE = - 10 * dEdx * l * 1e-9
-    if dE > 0:
-        dE = -abs(dE)
-    return dE
-
-def energy_loss2(l, beta, gamma, params):
-    """
-    Otra variante de la pérdida de energía. Actualmente idéntica a las demás,
-    pero se puede modificar de forma independiente en el futuro.
-    """
-    rho_g_cm3 = params['r'] / 1000.0
-    K = 0.307075
-    f_H = 2 / 18.0
-    f_O = 16 / 18.0
-    m_e = params['melectron']
-    I1 = params['I1']
-    I2 = params['I2']
-    z1 = params['z1']
-
-    arg_H = (2 * m_e * beta**2 * gamma**2) / I1
-    arg_O = (2 * m_e * beta**2 * gamma**2) / I2
-    if arg_H < 1.1:
-        arg_H = 1.1
-    if arg_O < 1.1:
-        arg_O = 1.1
-
-    term_H = f_H * (math.log(arg_H) - beta ** 2)
-    term_O = f_O * (math.log(arg_O) - beta ** 2)
-    dEdx = K * (z1 ** 2) / (beta ** 2) * rho_g_cm3 * (term_H + term_O)
-    dE = - 1 * dEdx * l * 1e-9
-    if dE > 0:
-        dE = -abs(dE)
-    return dE
-
-# =====================================================
-# -----------------Secciones eficaces-----------------
-# =====================================================
-
-def calc_sigma1(E, beta, params):
-    """
-    Calcula la sección macroscópica Σ (en 1/m) para obtener el camino libre medio.
-    """
-    zo = params['zo']
-    w2 = params['w2']
-    zh = params['zh']
-    w1 = params['w1']
-    n_med = params['nagua']  # en 1/m³
-    qelectron = params['qelectron']
-    k = params['k']
-    z1 = params['z1']
-
-    factor = (z1 * qelectron ** 2 * k / (E * conv)) ** 2  # unidades: (m)²
-    dim_factor = (zo ** 2 * w2 + zh ** 2 * w1) / (w2 + w1)
-    sigma = dim_factor * n_med * 4 * math.pi * factor / (3 * beta ** 2 + 1)
-    return sigma
-
-def calc_sigma2(E, beta, params):
-    """
-    Variante de la sección eficaz.
-    """
-    zo = params['zo']
-    w2 = params['w2']
-    zh = params['zh']
-    w1 = params['w1']
-    n_med = params['nagua']
-    qelectron = params['qelectron']
-    k = params['k']
-    z1 = params['z1']
-
-    factor = (z1 * qelectron ** 2 * k / (E * conv)) ** 2
-    dim_factor = (zo ** 2 * w2 + zh ** 2 * w1) / (w2 + w1)
-    sigma = dim_factor * n_med * 4 * math.pi * factor / (3 * beta ** 2 + 1)
-    return sigma
-
-def calc_sigma3(E, beta, params):
-    """
-    Otra variante de la sección eficaz.
-    """
-    zo = params['zo']
-    w2 = params['w2']
-    zh = params['zh']
-    w1 = params['w1']
-    n_med = params['nagua']
-    qelectron = params['qelectron']
-    k = params['k']
-    z1 = params['z1']
-
-    factor = (z1 * qelectron ** 2 * k / (E * conv)) ** 2
-    dim_factor = (zo ** 2 * w2 + zh ** 2 * w1) / (w2 + w1)
-    sigma = dim_factor * n_med * 4 * math.pi * factor / (3 * beta ** 2 + 1)
-    return sigma
-
-# =====================================================
-# -----------------Camino libre medio-----------------
-# =====================================================
-
-def calc_collision_length(sigma, n_med, rand_val):
-    """
-    Calcula la longitud de colisión l en cm.
-    """
-    lambda_m = 1 / sigma  # en metros
-    lambda_cm = lambda_m * 100  # conversión a cm
-    l = - lambda_cm * math.log(rand_val)
-    return l  # l en cm
 
 # ========================================================
 # -----------------Distribución de medio-----------------
@@ -452,7 +275,7 @@ def distribucion_valor(x, y, z):
     """
     Devuelve el valor absoluto del producto de las funciones usadas para determinar la región.
     """
-    a = 10
+    a = 630
     rangox = - math.cos(a * x)
     rangoy = - math.cos(a * y)
     rangoz = - math.cos(a * z)
@@ -474,44 +297,23 @@ bloque = args.block
 r = 1000.0        # Densidad del agua en kg/m³ (→ 1 g/cm³)
 nagua = 3.37e28   # Número de moléculas de agua por m³
 
-# Propiedades del agua (para la contribución en la fórmula de Bethe)
-w1 = 2.0
-w2 = 1.0
-zh = 1.0
-zo = 8.0
 
 # Características del ion de carbono (¹²C)
 z1 = 6            # Carga: 6+
 Ereposo = 12 * 931.5  # Energía de reposo ~ 11178 MeV
-Ei = 1350 * 12        # Energía cinética (1350 MeV/nucleón → 16200 MeV total)
+E_nucleon = 225 * 6   # Rango tipico 120 -430 ,un valor medio 225 MeV/u
+Ei = E_nucleon * 12
 E = Ei + Ereposo       # Energía total inicial (MeV)
 
-# Potenciales de ionización (valores aproximados en MeV)
-I1 = (12 * zh + 7) * 1e-6  # ~19e-6 MeV
-I2 = (12 * zo + 7) * 1e-6  # ~103e-6 MeV
 
 #Region de la muestra
 muestra_x, muestra_y, muestra_z = 4, 4, 2.5
-inicio_x, inicio_y, inicio_z = -2, -2, 3
+inicio_x, inicio_y, inicio_z = -2, -2, 20
 
 gen_xlim = (inicio_x, inicio_x + muestra_x)
 gen_ylim = (inicio_y, inicio_y + muestra_y)
 gen_zlim = (inicio_z, inicio_z + muestra_z)
 
-params = {
-    'zo': zo,
-    'w2': w2,
-    'zh': zh,
-    'w1': w1,
-    'nagua': nagua,
-    'qelectron': qelectron,
-    'k': k,
-    'z1': z1,
-    'r': r,
-    'melectron': melectron,
-    'I1': I1,
-    'I2': I2
-}
 
 # =======================
 # Parametos de Mezcla
@@ -572,22 +374,19 @@ for i in range(1, N + 1):
                 s1 = sigma(medio,k)
                 s1_medio = sigma_mix(s1, s1, medio, medio)
                 l = average_free_path(s1_medio)
-                #sigma = calc_sigma1(Ef, beta_val, params)
                 dEdx = Energyloss_bethebloch(beta_val, gamma_val, Z[medio], A[medio], T_max, I[medio])
                 dE = Energyloss_percm(dEdx, l)
             elif 0.4 <= valor_region <= 0.5:
                 s1 = sigma(medio,k)
                 s2 = sigma(nano,k)
                 s_mix = sigma_mix(s1, s1, medio, nano)
-                l = average_free_path_mix(s_mix,medio,nano)
-                #sigma = calc_sigma2(Ef, beta_val, params)
+                l = average_free_path_mix(s_mix,medio, nano)
                 dEdx = Energyloss_bethebloch_mix(beta_val, gamma_val, ZA_mix, rho_mix, T_max, I_mix)
                 dE = Energyloss_percm(dEdx, l)
             else:
                 s1 = sigma(medio, k)
                 s1_medio = sigma_mix(s1, s1, medio, medio)
                 l = average_free_path(s1_medio)
-                #sigma = calc_sigma1(Ef, beta_val, params)
                 dEdx = Energyloss_bethebloch(beta_val, gamma_val, Z[medio], A[medio], T_max, I[medio])
                 dE = Energyloss_percm(dEdx, l)
         else:
@@ -602,7 +401,6 @@ for i in range(1, N + 1):
         rand_theta = np.random.rand()
         rand_phi = np.random.rand()
 
-        #l = calc_collision_length(sigma, params['nagua'], rand_l)
         theta = math.acos(1 - (2 * rand_theta * (1 - beta_val ** 2)) / (3 * beta_val ** 2 - 4 * rand_theta * beta_val ** 2 + 1))
         phi = 2 * math.pi * rand_phi
 
@@ -610,7 +408,7 @@ for i in range(1, N + 1):
         #print(Ef_new)
         if Ef_new >= Ereposo:
             x, y, z = update_position(x, y, z, l, theta, phi, scale=1)
-            results.append((i, collision_count, x, y, z, Ef_new, dE))
+            results.append((i, collision_count, x, y, z, Ef_new, dEdx))
             Ef = Ef_new
         else:
             break

@@ -3,16 +3,21 @@ import subprocess
 import argparse
 from concurrent.futures import ProcessPoolExecutor, as_completed
 import time
+import shutil
+
 
 # ---------------------------------------------
 # Runner depurado: muestra logs y comprueba CSV
 # ---------------------------------------------
 start_time = time.time()
+
+NA = 'SN'
+
 def parse_args():
     p = argparse.ArgumentParser(
         description="Runner paralelo con logging y verificación de CSV"
     )
-    p.add_argument('-n', '--runs',  type=int, default=15,
+    p.add_argument('-n', '--runs',  type=int, default=225,
                    help="Número de iteraciones (por defecto 1)")
     p.add_argument('-j', '--jobs',  type=int, default=15,
                    help="Procesos paralelos (por defecto 1)")
@@ -22,11 +27,27 @@ def parse_args():
                    help="Script de postproceso (acepta --input-db, --radius-output, --bragg-output)")
     p.add_argument('--db-dir', default='BUENA_DATA/intercambio',
                    help="Directorio base para BD por hilo")
-    p.add_argument('--rad-dir', default='csv/A_Val/a10/RAD',
+    p.add_argument('--rad-dir', default=f'csv/A_Val/{NA}/RAD',
                    help="Directorio de salida para radios")
-    p.add_argument('--bragg-dir', default='csv/A_Val/a10/Ec',
+    p.add_argument('--bragg-dir', default=f'csv/A_Val/{NA}/Ec',
                    help="Directorio de salida para Bragg")
     return p.parse_args()
+
+def limpiar_directorio(path):
+    """
+    Elimina todo el contenido dentro de 'path',
+    pero conserva la carpeta.
+    """
+    if os.path.exists(path):
+        for nombre in os.listdir(path):
+            archivo = os.path.join(path, nombre)
+            try:
+                if os.path.isfile(archivo) or os.path.islink(archivo):
+                    os.remove(archivo)
+                elif os.path.isdir(archivo):
+                    shutil.rmtree(archivo)
+            except Exception as e:
+                print(f"✖ No se pudo borrar {archivo}: {e}")
 
 
 def run_once(iter_index, args):
@@ -85,6 +106,11 @@ def run_once(iter_index, args):
 
 def main():
     args = parse_args()
+
+    # --- limpiar carpeta de trabajo antes de iniciar ---
+    print(f"🧹 Limpiando directorio de trabajo: {args.db_dir}")
+    limpiar_directorio(args.db_dir)
+
     # Ejecutar en paralelo o en serie según jobs
     results = []
     with ProcessPoolExecutor(max_workers=args.jobs) as executor:
